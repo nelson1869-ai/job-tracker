@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Job Tracker
 
-## Getting Started
+A small app for keeping track of job applications: company, role, link, where you found it, status, dates, and notes.
 
-First, run the development server:
+- **Private by design:** everything is saved in your browser (localStorage). There is no server or account.
+- **Auto fill:** paste a job-post link and "Found on" is filled in (LinkedIn, Indeed, JobStreet, Kalibrr, OnlineJobs.ph).
+- **Filter, search, and follow-up reminders** for applications that need a follow-up today or earlier.
+- **Export / import** a JSON backup, so you can move your data or keep a copy.
+
+Built with Next.js 16 (static export), React 19, TypeScript, Tailwind CSS 4, and Vitest.
+The [`/learn`](src/app/learn/page.tsx) page explains how it works, with links to the official docs.
+
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev          # http://localhost:3000
+pnpm test         # unit tests (Vitest)
+pnpm lint && pnpm typecheck
+pnpm build        # static files in out/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Code map
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| File | What it does |
+| --- | --- |
+| `src/features/jobs/types.ts` | The shape of an application, statuses, and sources |
+| `src/features/jobs/storage.ts` | Reads and saves the list in localStorage |
+| `src/features/jobs/use-applications.ts` | Hook: list + add, update, delete, replace |
+| `src/features/jobs/application-form.tsx` | The form (FormData) with link-based auto fill |
+| `src/features/jobs/detect-source.ts` | Which job board a link belongs to |
+| `src/features/jobs/filters.ts` | Counts, filter, search, and due follow-ups |
+| `src/features/jobs/backup.ts` | Create and safely read backup files |

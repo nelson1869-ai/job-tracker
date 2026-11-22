@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { JobTracker } from "@/features/jobs/job-tracker";
 
 // The page itself is a Server Component (static HTML).
@@ -9,6 +10,11 @@ export default function Home() {
         <h1 className="text-3xl font-bold tracking-tight">Job Tracker</h1>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
           Keep track of every job you apply to. Your data stays in this browser only.
+        </p>
+        <p className="mt-3 text-sm">
+          <Link href="/learn" className="font-medium text-emerald-700 hover:underline dark:text-emerald-400">
+            How this app is built →
+          </Link>
         </p>
       </header>
       <JobTracker />
