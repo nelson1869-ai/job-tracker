@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ApplicationForm } from "./application-form";
 import { ApplicationList } from "./application-list";
+import { BackupControls } from "./backup-controls";
 import { countByStatus, dueFollowUps, filterApplications, todayString, type StatusFilter as Filter } from "./filters";
 import { FollowUpBanner } from "./follow-up-banner";
 import { StatusFilter } from "./status-filter";
@@ -12,7 +13,7 @@ import { useApplications } from "./use-applications";
 // The main screen: follow-up reminders, the form, then the filtered list.
 // Clicking "Edit" swaps the form into edit mode for that application.
 export function JobTracker() {
-  const { applications, addApplication, updateApplication, deleteApplication } = useApplications();
+  const { applications, addApplication, updateApplication, deleteApplication, replaceAll } = useApplications();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<Filter>("All");
   const [query, setQuery] = useState("");
@@ -61,6 +62,13 @@ export function JobTracker() {
         <h2 id="list-heading" className="text-lg font-semibold">
           My applications ({applications.length})
         </h2>
+        <BackupControls
+          applications={applications}
+          onImport={(imported) => {
+            setEditingId(null);
+            replaceAll(imported);
+          }}
+        />
 
         <input
           type="search"

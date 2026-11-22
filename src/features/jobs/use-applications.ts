@@ -33,5 +33,10 @@ export function useApplications() {
     saveApplications(getSnapshot().filter((application) => application.id !== id));
   }
 
-  return { applications, addApplication, updateApplication, deleteApplication };
+  // Used by "Import backup": the file's list replaces the current one.
+  function replaceAll(next: JobApplication[]) {
+    saveApplications(next);
+  }
+
+  return { applications, addApplication, updateApplication, deleteApplication, replaceAll };
 }
