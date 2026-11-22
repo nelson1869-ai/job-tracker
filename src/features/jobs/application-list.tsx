@@ -15,13 +15,19 @@ interface ApplicationListProps {
   applications: JobApplication[];
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  emptyMessage?: string; // shown when the list is empty
 }
 
-export function ApplicationList({ applications, onEdit, onDelete }: ApplicationListProps) {
+export function ApplicationList({
+  applications,
+  onEdit,
+  onDelete,
+  emptyMessage = "No applications yet. Add the first job you applied to above.",
+}: ApplicationListProps) {
   if (applications.length === 0) {
     return (
       <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700">
-        No applications yet. Add the first job you applied to above.
+        {emptyMessage}
       </p>
     );
   }
