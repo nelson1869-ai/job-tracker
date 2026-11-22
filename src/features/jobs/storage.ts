@@ -1,4 +1,5 @@
 import type { JobApplication } from "./types";
+import { normalizeList } from "./validation";
 
 // All applications are saved in the browser's localStorage under this key.
 // Nothing is sent to a server.
@@ -27,8 +28,10 @@ function readRaw(): string | null {
 function parse(raw: string | null): JobApplication[] {
   if (!raw) return EMPTY;
   try {
-    const data: unknown = JSON.parse(raw);
-    return Array.isArray(data) ? (data as JobApplication[]) : EMPTY;
+    // Never trust stored data blindly: an older app version, a manual edit,
+    // or another site bug could have left something unexpected there.
+    const list = normalizeList(JSON.parse(raw));
+    return list.length > 0 ? list : EMPTY;
   } catch {
     return EMPTY; // broken JSON: start empty instead of crashing
   }
@@ -58,13 +61,15 @@ export function subscribe(onChange: () => void): () => void {
   };
 }
 
-export function saveApplications(applications: JobApplication[]): void {
+// Returns true if saved, false if the browser refused (storage full or blocked),
+// so the screen can show a clear message instead of silently losing data.
+export function saveApplications(applications: JobApplication[]): boolean {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
   } catch {
-    alert("Could not save. Your browser storage may be full or blocked.");
-    return;
+    return false;
   }
   // Tell components in THIS tab to re-read the list.
   listeners.forEach((listener) => listener());
+  return true;
 }

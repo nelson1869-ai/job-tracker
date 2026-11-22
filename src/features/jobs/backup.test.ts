@@ -13,6 +13,13 @@ const sample: JobApplication = {
   appliedOn: "2026-11-10",
   followUpOn: "2026-11-17",
   notes: "Ask about the stack",
+  salaryRange: "₱20,000 – ₱25,000",
+  employmentType: "Full-time",
+  workplaceType: "Hybrid",
+  contact: "Ms. Cruz, hr@example.com",
+  interviewAt: "2026-11-25T14:30",
+  resumeVersion: "Resume v2",
+  nextAction: "Prepare portfolio demo",
   createdAt: "2026-11-10T00:00:00.000Z",
   updatedAt: "2026-11-12T00:00:00.000Z",
 };
@@ -27,11 +34,18 @@ describe("createBackup + parseBackup", () => {
   it("writes the app name and version so we can recognise our files", () => {
     const data = JSON.parse(createBackup([]));
     expect(data.app).toBe("job-tracker");
-    expect(data.version).toBe(1);
+    expect(data.version).toBe(2);
   });
 });
 
 describe("parseBackup", () => {
+  it("imports a version 1 backup (before the new fields existed)", () => {
+    const v1 = { app: "job-tracker", version: 1, applications: [{ id: "x", company: "A", role: "B", status: "Saved" }] };
+    const result = parseBackup(JSON.stringify(v1));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.applications[0]).toMatchObject({ id: "x", salaryRange: "", interviewAt: "" });
+  });
+
   it("accepts a plain array too", () => {
     const result = parseBackup(JSON.stringify([sample]));
     expect(result.ok).toBe(true);

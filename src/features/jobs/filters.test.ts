@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { countByStatus, dueFollowUps, filterApplications, todayString } from "./filters";
+import {
+  addDays,
+  countByStatus,
+  dashboardStats,
+  dueFollowUps,
+  filterApplications,
+  sortApplications,
+  todayString,
+  upcomingInterviews,
+} from "./filters";
 import type { JobApplication, Status } from "./types";
+import { EMPTY_INPUT } from "./validation";
 
 // Small helper so each test only writes the fields it cares about.
 function app(overrides: Partial<JobApplication> & { status?: Status } = {}): JobApplication {
   return {
+    ...EMPTY_INPUT,
     id: overrides.id ?? Math.random().toString(),
     company: "Acme",
     role: "Junior Web Developer",
@@ -82,5 +93,69 @@ describe("dueFollowUps", () => {
       today,
     );
     expect(due).toHaveLength(0);
+  });
+});
+
+describe("sortApplications", () => {
+  const list = [
+    app({ id: "b", company: "beta", appliedOn: "2026-11-05", followUpOn: "", createdAt: "2026-11-02T00:00:00Z" }),
+    app({ id: "a", company: "Acme", appliedOn: "", followUpOn: "2026-11-20", createdAt: "2026-11-03T00:00:00Z" }),
+    app({ id: "c", company: "Cee", appliedOn: "2026-11-09", followUpOn: "2026-11-15", createdAt: "2026-11-01T00:00:00Z" }),
+  ];
+  const ids = (key: Parameters<typeof sortApplications>[1]) => sortApplications(list, key).map((a) => a.id);
+
+  it("sorts newest first by default", () => expect(ids("newest")).toEqual(["a", "b", "c"]));
+  it("sorts by company, ignoring upper/lower case", () => expect(ids("company")).toEqual(["a", "b", "c"]));
+  it("sorts by date applied, newest first, empty dates last", () => expect(ids("appliedOn")).toEqual(["c", "b", "a"]));
+  it("sorts by follow-up, soonest first, empty dates last", () => expect(ids("followUpOn")).toEqual(["c", "a", "b"]));
+  it("does not change the original list", () => {
+    sortApplications(list, "company");
+    expect(list.map((a) => a.id)).toEqual(["b", "a", "c"]);
+  });
+});
+
+describe("addDays", () => {
+  it("handles month and year changes", () => {
+    expect(addDays("2026-11-28", 7)).toBe("2026-12-05");
+    expect(addDays("2026-12-30", 3)).toBe("2027-01-02");
+  });
+});
+
+describe("upcomingInterviews", () => {
+  it("lists open interviews from today to 7 days ahead, soonest first", () => {
+    const list = upcomingInterviews(
+      [
+        app({ id: "later", interviewAt: "2026-11-27T09:00", status: "Interview" }),
+        app({ id: "today", interviewAt: "2026-11-22T15:00", status: "Interview" }),
+        app({ id: "past", interviewAt: "2026-11-20T10:00", status: "Interview" }),
+        app({ id: "far", interviewAt: "2026-12-10T10:00", status: "Interview" }),
+        app({ id: "closed", interviewAt: "2026-11-23T10:00", status: "Rejected" }),
+      ],
+      "2026-11-22",
+    );
+    expect(list.map((a) => a.id)).toEqual(["today", "later"]);
+  });
+});
+
+describe("dashboardStats", () => {
+  it("derives every number from the list", () => {
+    const stats = dashboardStats(
+      [
+        app({ status: "Saved" }),
+        app({ status: "Applied", followUpOn: "2026-11-20" }),
+        app({ status: "Applied" }),
+        app({ status: "Interview", interviewAt: "2026-11-24T10:00" }),
+        app({ status: "Rejected" }),
+      ],
+      "2026-11-22",
+    );
+    expect(stats.counts.All).toBe(5);
+    expect(stats.followUpsDue).toBe(1);
+    expect(stats.interviewsThisWeek).toBe(1);
+    expect(stats.responseRate).toBe(25); // 1 interview out of 4 sent (Saved is not sent)
+  });
+
+  it("is 0% with nothing sent yet", () => {
+    expect(dashboardStats([], "2026-11-22").responseRate).toBe(0);
   });
 });

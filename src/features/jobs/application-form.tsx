@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { detectSource } from "./detect-source";
+import { EMPTY_INPUT } from "./validation";
 import { SOURCES, STATUSES, type JobApplication, type JobApplicationInput, type Source, type Status } from "./types";
 
 interface ApplicationFormProps {
@@ -28,6 +29,7 @@ export function ApplicationForm({ initial, onSave, onCancel }: ApplicationFormPr
     const text = (name: string) => String(form.get(name) ?? "").trim();
 
     onSave({
+      ...(initial ?? EMPTY_INPUT), // keep fields this form does not show yet
       company: text("company"),
       role: text("role"),
       url: text("url"),

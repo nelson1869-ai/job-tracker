@@ -1,10 +1,14 @@
-import { SOURCES, STATUSES, type JobApplication, type Source, type Status } from "./types";
+import type { JobApplication } from "./types";
+import { normalizeApplication } from "./validation";
 
 // A backup file is plain JSON. The "app" and "version" fields let us recognise
 // our own files and change the format later without breaking old backups.
+// Version 2 added salary, employment type, workplace, contact, interview date,
+// resume version, and next action. Version 1 files still import fine: the new
+// fields simply start empty.
 interface BackupFile {
   app: "job-tracker";
-  version: 1;
+  version: 2;
   exportedAt: string;
   applications: JobApplication[];
 }
@@ -12,7 +16,7 @@ interface BackupFile {
 export function createBackup(applications: JobApplication[], now: Date = new Date()): string {
   const backup: BackupFile = {
     app: "job-tracker",
-    version: 1,
+    version: 2,
     exportedAt: now.toISOString(),
     applications,
   };
@@ -24,7 +28,9 @@ export type ParseResult =
   | { ok: false; error: string };
 
 // Read a backup file's text and return clean applications, or a friendly error.
-// A file can come from anywhere, so every field is checked before we trust it.
+// Unlike loading from localStorage, an import is all-or-nothing: if one item is
+// broken we stop and say which one, so the user's current data is never replaced
+// by a half-read file.
 export function parseBackup(text: string): ParseResult {
   let data: unknown;
   try {
@@ -34,63 +40,26 @@ export function parseBackup(text: string): ParseResult {
   }
 
   // Accept our backup format, or a plain array of applications.
-  const list = Array.isArray(data)
-    ? data
-    : isObject(data) && Array.isArray(data.applications)
-      ? data.applications
-      : null;
+  const list =
+    Array.isArray(data)
+      ? data
+      : typeof data === "object" && data !== null && Array.isArray((data as { applications?: unknown }).applications)
+        ? (data as { applications: unknown[] }).applications
+        : null;
   if (!list) {
     return { ok: false, error: "This file does not look like a Job Tracker backup." };
   }
 
   const applications: JobApplication[] = [];
+  const seen = new Set<string>();
   for (const [index, item] of list.entries()) {
-    const application = toApplication(item);
+    const application = normalizeApplication(item);
     if (!application) {
       return { ok: false, error: `Item ${index + 1} is missing a company or role.` };
     }
+    if (seen.has(application.id)) application.id = crypto.randomUUID(); // fix duplicate ids
+    seen.add(application.id);
     applications.push(application);
   }
   return { ok: true, applications };
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function text(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-// "YYYY-MM-DD" or "" — anything else is dropped.
-function date(value: unknown): string {
-  const s = text(value);
-  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : "";
-}
-
-// Turn one unknown item into a valid JobApplication, or null if it is unusable.
-function toApplication(item: unknown): JobApplication | null {
-  if (!isObject(item)) return null;
-  const company = text(item.company);
-  const role = text(item.role);
-  if (!company || !role) return null;
-
-  const status = STATUSES.includes(item.status as Status) ? (item.status as Status) : "Applied";
-  const source = SOURCES.includes(item.source as Source) ? (item.source as Source) : "Other";
-  const now = new Date().toISOString();
-
-  return {
-    id: text(item.id) || crypto.randomUUID(),
-    company,
-    role,
-    url: text(item.url),
-    source,
-    location: text(item.location),
-    status,
-    appliedOn: date(item.appliedOn),
-    followUpOn: date(item.followUpOn),
-    notes: text(item.notes),
-    createdAt: text(item.createdAt) || now,
-    updatedAt: text(item.updatedAt) || now,
-  };
 }
