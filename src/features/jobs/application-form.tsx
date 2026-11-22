@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { detectSource } from "./detect-source";
 import { SOURCES, STATUSES, type JobApplication, type JobApplicationInput, type Source, type Status } from "./types";
 
 interface ApplicationFormProps {
@@ -14,6 +16,10 @@ const inputClass =
 const labelClass = "block text-sm font-medium text-zinc-700 dark:text-zinc-300";
 
 export function ApplicationForm({ initial, onSave, onCancel }: ApplicationFormProps) {
+  // "Found on" is kept in state so pasting a link can change it (auto fill).
+  const [source, setSource] = useState<Source>(initial?.source ?? "LinkedIn");
+  const [autoFilled, setAutoFilled] = useState(false);
+
   // Read all fields at once with FormData when the form is submitted.
   // Docs: https://developer.mozilla.org/en-US/docs/Web/API/FormData
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -33,11 +39,32 @@ export function ApplicationForm({ initial, onSave, onCancel }: ApplicationFormPr
       notes: text("notes"),
     });
 
-    if (!initial) event.currentTarget.reset(); // clear the form after adding
+    if (!initial) {
+      event.currentTarget.reset(); // clear the form after adding
+      setAutoFilled(false); // "Found on" keeps the last choice, which is handy for the next one
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+      <label className={`${labelClass} sm:col-span-2`}>
+        Job post link
+        <input
+          type="url"
+          name="url"
+          placeholder="Paste the link — we fill in where you found it"
+          defaultValue={initial?.url}
+          onChange={(event) => {
+            const detected = detectSource(event.target.value);
+            if (detected) {
+              setSource(detected);
+              setAutoFilled(true);
+            }
+          }}
+          className={inputClass}
+        />
+      </label>
+
       <label className={labelClass}>
         Company *
         <input name="company" required defaultValue={initial?.company} className={inputClass} />
@@ -57,11 +84,24 @@ export function ApplicationForm({ initial, onSave, onCancel }: ApplicationFormPr
       </label>
       <label className={labelClass}>
         Found on
-        <select name="source" defaultValue={initial?.source ?? "LinkedIn"} className={inputClass}>
-          {SOURCES.map((source) => (
-            <option key={source}>{source}</option>
+        <select
+          name="source"
+          value={source}
+          onChange={(event) => {
+            setSource(event.target.value as Source);
+            setAutoFilled(false); // the user chose it themselves
+          }}
+          className={inputClass}
+        >
+          {SOURCES.map((option) => (
+            <option key={option}>{option}</option>
           ))}
         </select>
+        {autoFilled ? (
+          <span className="mt-1 block text-xs font-normal text-emerald-700 dark:text-emerald-400">
+            Filled in from the link
+          </span>
+        ) : null}
       </label>
 
       <label className={labelClass}>
@@ -81,10 +121,6 @@ export function ApplicationForm({ initial, onSave, onCancel }: ApplicationFormPr
           defaultValue={initial?.location}
           className={inputClass}
         />
-      </label>
-      <label className={labelClass}>
-        Job post link
-        <input type="url" name="url" placeholder="https://…" defaultValue={initial?.url} className={inputClass} />
       </label>
 
       <label className={`${labelClass} sm:col-span-2`}>
