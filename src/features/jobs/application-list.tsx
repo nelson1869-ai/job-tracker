@@ -74,12 +74,7 @@ export function ApplicationList({
             </button>
             <button
               type="button"
-              onClick={() => {
-                // Simple browser confirm so nothing is deleted by accident.
-                if (confirm(`Delete "${application.role}" at ${application.company}?`)) {
-                  onDelete(application.id);
-                }
-              }}
+              onClick={() => onDelete(application.id)} // the parent asks for confirmation
               className="text-rose-700 hover:underline dark:text-rose-400"
             >
               Delete

@@ -1,8 +1,20 @@
 @import "tailwindcss";
 
+/* `dark:` classes follow data-theme on <html> (set by the theme toggle and the
+   inline script in layout.tsx), not only the system setting.
+   Docs: https://tailwindcss.com/docs/dark-mode#toggling-dark-mode-manually */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8f8f9;
+  --foreground: #18181b;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --background: #0b0b0d;
+  --foreground: #ececee;
+  color-scheme: dark; /* dark scrollbars, date pickers, and form controls */
 }
 
 @theme inline {
@@ -12,16 +24,24 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  /* Use the Geist font loaded in layout.tsx (create-next-app left Arial here). */
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* One clear focus ring for every control, for keyboard users. */
+:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
