@@ -134,3 +134,14 @@ export function dashboardStats(applications: JobApplication[], today: string): D
     responseRate: sent === 0 ? 0 : Math.round((responses / sent) * 100),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Changing status (used by the board's "Move to" control)
+// ---------------------------------------------------------------------------
+
+// Returns the application with a new status. Moving to "Applied" fills in
+// today's date if no application date was set yet. Nothing else changes.
+export function withStatus(application: JobApplication, status: Status, today: string): JobApplication {
+  const appliedOn = status === "Applied" && !application.appliedOn ? today : application.appliedOn;
+  return { ...application, status, appliedOn };
+}

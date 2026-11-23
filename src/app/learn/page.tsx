@@ -42,9 +42,9 @@ const lessons = [
     docs: [{ label: "React: avoid redundant state", href: "https://react.dev/learn/choosing-the-state-structure#avoid-redundant-state" }],
   },
   {
-    title: "6. Never trust an imported file",
-    body: "A backup file can come from anywhere, so every field is checked. Unknown statuses fall back to 'Applied' and bad dates are dropped before anything is saved.",
-    file: "src/features/jobs/backup.ts",
+    title: "6. Never trust data you did not just create",
+    body: "Backup files and even localStorage can hold old or broken data, so both go through one normalizeApplication function. Unknown statuses fall back to 'Applied', bad dates are dropped, and older records get the new fields as empty values.",
+    file: "src/features/jobs/validation.ts",
     docs: [
       { label: "MDN: Blob (making a file to download)", href: "https://developer.mozilla.org/en-US/docs/Web/API/Blob" },
       { label: "OWASP: input validation", href: "https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html" },
@@ -57,7 +57,31 @@ const lessons = [
     docs: [{ label: "Vitest: getting started", href: "https://vitest.dev/guide/" }],
   },
   {
-    title: "8. Ship it as a static site",
+    title: "8. Use the browser's own <dialog> for modals",
+    body: "showModal() gives a backdrop, keeps keyboard focus inside the dialog, and closes on Escape, with no extra library. The form, the details view, and every confirmation use it.",
+    file: "src/features/ui/modal.tsx",
+    docs: [{ label: "MDN: <dialog>", href: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog" }],
+  },
+  {
+    title: "9. Never define a component inside another component",
+    body: "The form's Field helper was first written inside ApplicationForm. Each re-render made it a new component type, so React rebuilt the inputs and wiped what the user typed. Moving it outside fixed it.",
+    file: "src/features/jobs/application-form.tsx",
+    docs: [{ label: "React: nesting component definitions", href: "https://react.dev/learn/your-first-component#nesting-and-organizing-components" }],
+  },
+  {
+    title: "10. A scroll box needs position: relative",
+    body: "The board scrolls sideways on phones. Its screen-reader-only labels use position: absolute, and without 'relative' on the scroll box they escaped it and made the whole page scroll. A browser test caught it.",
+    file: "src/features/jobs/kanban-board.tsx",
+    docs: [{ label: "MDN: containing block", href: "https://developer.mozilla.org/en-US/docs/Web/CSS/Containing_block" }],
+  },
+  {
+    title: "11. Undo is kinder than 'Are you sure?'",
+    body: "Deleting asks once, then shows a toast with Undo that puts the same record back in the same place. Toasts use aria-live so screen readers announce them.",
+    file: "src/features/ui/toasts.tsx",
+    docs: [{ label: "MDN: ARIA live regions", href: "https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Guides/Live_regions" }],
+  },
+  {
+    title: "12. Ship it as a static site",
     body: "output: 'export' turns the app into plain HTML, CSS, and JS files that any static host can serve. Partial prerendering (PPR) does not work in export mode, so it is turned off.",
     file: "next.config.ts",
     docs: [{ label: "Next.js: static exports", href: "https://nextjs.org/docs/app/guides/static-exports" }],
@@ -72,7 +96,7 @@ export default function LearnPage() {
       </Link>
       <h1 className="mt-4 text-3xl font-bold tracking-tight">What this app teaches</h1>
       <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-        Eight small lessons from building the Job Tracker, each with the file to read and the official docs.
+        Twelve small lessons from building the Job Tracker, each with the file to read and the official docs.
       </p>
 
       <ol className="mt-8 space-y-6">

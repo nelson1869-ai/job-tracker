@@ -2,16 +2,8 @@
 
 import type { DashboardStats, StatusFilter } from "./filters";
 import { formatDate, formatInterview } from "./format";
-import { STATUSES, type JobApplication, type Status } from "./types";
-
-// One color per status, used by the metric dots, the pipeline bar, and badges.
-export const STATUS_COLOR: Record<Status, { dot: string; badge: string }> = {
-  Saved: { dot: "bg-zinc-400", badge: "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200" },
-  Applied: { dot: "bg-sky-500", badge: "bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200" },
-  Interview: { dot: "bg-amber-500", badge: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200" },
-  Offer: { dot: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200" },
-  Rejected: { dot: "bg-rose-500", badge: "bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200" },
-};
+import { STATUS_COLOR, StatusBadge } from "./status-colors";
+import { STATUSES, type JobApplication } from "./types";
 
 const card = "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900";
 
@@ -92,9 +84,7 @@ export function Dashboard({ stats, due, interviews, recent, today, onFilter, onO
                       <span className="block truncate font-medium">{application.role}</span>
                       <span className="block truncate text-zinc-500">{application.company}</span>
                     </span>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[application.status].badge}`}>
-                      {application.status}
-                    </span>
+                    <StatusBadge status={application.status} />
                   </button>
                 </li>
               ))}

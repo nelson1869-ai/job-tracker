@@ -8,6 +8,7 @@ import {
   sortApplications,
   todayString,
   upcomingInterviews,
+  withStatus,
 } from "./filters";
 import type { JobApplication, Status } from "./types";
 import { EMPTY_INPUT } from "./validation";
@@ -157,5 +158,16 @@ describe("dashboardStats", () => {
 
   it("is 0% with nothing sent yet", () => {
     expect(dashboardStats([], "2026-11-22").responseRate).toBe(0);
+  });
+});
+
+describe("withStatus", () => {
+  it("fills in today's date when moving to Applied without one", () => {
+    const moved = withStatus(app({ status: "Saved", appliedOn: "" }), "Applied", "2026-11-23");
+    expect(moved).toMatchObject({ status: "Applied", appliedOn: "2026-11-23" });
+  });
+
+  it("keeps an existing application date", () => {
+    expect(withStatus(app({ appliedOn: "2026-11-01" }), "Interview", "2026-11-23").appliedOn).toBe("2026-11-01");
   });
 });

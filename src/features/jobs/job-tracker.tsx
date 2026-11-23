@@ -4,10 +4,12 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/features/ui/confirm-dialog";
 import { Modal } from "@/features/ui/modal";
 import { Toasts, useToasts } from "@/features/ui/toasts";
+import { ApplicationDetails } from "./application-details";
 import { ApplicationForm } from "./application-form";
 import { ApplicationList } from "./application-list";
 import { BackupControls } from "./backup-controls";
 import { Dashboard } from "./dashboard";
+import { KanbanBoard } from "./kanban-board";
 import {
   SORT_OPTIONS,
   dashboardStats,
@@ -16,11 +18,12 @@ import {
   sortApplications,
   todayString,
   upcomingInterviews,
+  withStatus,
   type SortKey,
   type StatusFilter as Filter,
 } from "./filters";
 import { StatusFilter } from "./status-filter";
-import type { JobApplication, JobApplicationInput } from "./types";
+import type { JobApplication, JobApplicationInput, Status } from "./types";
 import { useApplications } from "./use-applications";
 
 const SAVE_FAILED = "Could not save. Your browser storage may be full or blocked.";
@@ -39,16 +42,21 @@ export function JobTracker() {
   const [statusFilter, setStatusFilter] = useState<Filter>("All");
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
+  const [view, setView] = useState<"list" | "board">("list");
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   // Everything below is calculated from the list on every render (no copies in state).
   const today = todayString();
   const editing = applications.find((application) => application.id === editingId);
   const deleting = applications.find((application) => application.id === deletingId);
+  const viewing = applications.find((application) => application.id === viewingId);
   const stats = dashboardStats(applications, today);
   const due = dueFollowUps(applications, today);
   const interviews = upcomingInterviews(applications, today);
   const recent = sortApplications(applications, "newest").slice(0, 5);
   const visible = sortApplications(filterApplications(applications, statusFilter, query), sortKey);
+  // The board shows every status as a column, so only the search applies there.
+  const boardItems = sortApplications(filterApplications(applications, "All", query), sortKey);
 
   function openAdd() {
     setEditingId(null);
@@ -56,8 +64,23 @@ export function JobTracker() {
   }
 
   function openEdit(id: string) {
+    setViewingId(null);
     setEditingId(id);
     setFormOpen(true);
+  }
+
+  function askDelete(id: string) {
+    setViewingId(null);
+    setDeletingId(id);
+  }
+
+  // Board "Move to": change only the status (and fill in today's date for "Applied").
+  function moveTo(application: JobApplication, status: Status) {
+    if (updateApplication(application.id, withStatus(application, status, today))) {
+      notify({ message: `Moved ${application.role} to ${status}.`, tone: "success" });
+    } else {
+      notify({ message: SAVE_FAILED, tone: "error" });
+    }
   }
 
   function closeForm() {
@@ -129,7 +152,7 @@ export function JobTracker() {
           setStatusFilter(status);
           document.getElementById("list-heading")?.scrollIntoView({ behavior: "smooth" });
         }}
-        onOpen={openEdit}
+        onOpen={setViewingId}
         onFollowUpDone={markFollowUpDone}
       />
 
@@ -176,18 +199,45 @@ export function JobTracker() {
             </select>
           </label>
         </div>
-        <StatusFilter value={statusFilter} counts={stats.counts} onChange={setStatusFilter} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {view === "list" ? (
+            <StatusFilter value={statusFilter} counts={stats.counts} onChange={setStatusFilter} />
+          ) : (
+            <p className="text-sm text-zinc-500">Each column is a stage. Use “Move to” on a card to change it.</p>
+          )}
+          {/* Two buttons acting as a toggle; aria-pressed marks the current view. */}
+          <div role="group" aria-label="View" className="inline-flex rounded-lg border border-zinc-300 p-0.5 dark:border-zinc-700">
+            {(["list", "board"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={view === option}
+                onClick={() => setView(option)}
+                className={`h-8 rounded-md px-3 text-sm font-medium ${
+                  view === option ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                }`}
+              >
+                {option === "list" ? "List" : "Board"}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <ApplicationList
-          applications={visible}
-          onEdit={openEdit}
-          onDelete={setDeletingId}
-          emptyMessage={
-            applications.length === 0
-              ? "No applications yet. Click “Add application” to start."
-              : "No applications match this filter or search."
-          }
-        />
+        {view === "list" ? (
+          <ApplicationList
+            applications={visible}
+            onView={setViewingId}
+            onEdit={openEdit}
+            onDelete={askDelete}
+            emptyMessage={
+              applications.length === 0
+                ? "No applications yet. Click “Add application” to start."
+                : "No applications match this filter or search."
+            }
+          />
+        ) : (
+          <KanbanBoard applications={boardItems} onView={setViewingId} onMove={moveTo} />
+        )}
       </section>
 
       <Modal
@@ -198,6 +248,12 @@ export function JobTracker() {
       >
         {/* A new key gives a fresh form for each add/edit (no leftover values). */}
         {formOpen ? <ApplicationForm key={editing?.id ?? "new"} initial={editing} onSave={save} onCancel={closeForm} /> : null}
+      </Modal>
+
+      <Modal open={viewing !== undefined} title={viewing ? viewing.role : "Application"} onClose={() => setViewingId(null)} wide>
+        {viewing ? (
+          <ApplicationDetails application={viewing} onEdit={() => openEdit(viewing.id)} onDelete={() => askDelete(viewing.id)} />
+        ) : null}
       </Modal>
 
       <ConfirmDialog

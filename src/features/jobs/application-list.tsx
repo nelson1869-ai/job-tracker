@@ -1,87 +1,107 @@
 "use client";
 
-import type { JobApplication, Status } from "./types";
-
-// One color per status so the list is easy to scan.
-const statusColor: Record<Status, string> = {
-  Saved: "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200",
-  Applied: "bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200",
-  Interview: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
-  Offer: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-  Rejected: "bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-200",
-};
+import { formatDate } from "./format";
+import { StatusBadge } from "./status-colors";
+import type { JobApplication } from "./types";
 
 interface ApplicationListProps {
   applications: JobApplication[];
+  onView: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
-  emptyMessage?: string; // shown when the list is empty
+  emptyMessage: string;
 }
 
-export function ApplicationList({
-  applications,
-  onEdit,
-  onDelete,
-  emptyMessage = "No applications yet. Add the first job you applied to above.",
-}: ApplicationListProps) {
+// The "List" view. One list, two layouts chosen by CSS:
+// a table on medium screens and up, cards on phones (a wide table would overflow).
+export function ApplicationList({ applications, onView, onEdit, onDelete, emptyMessage }: ApplicationListProps) {
   if (applications.length === 0) {
     return (
-      <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700">
+      <p className="rounded-xl border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
         {emptyMessage}
       </p>
     );
   }
 
+  const actions = (application: JobApplication) => (
+    <div className="flex flex-wrap gap-1">
+      <button type="button" onClick={() => onEdit(application.id)} className="rounded-md px-2 py-1 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800">
+        Edit
+      </button>
+      <button
+        type="button"
+        onClick={() => onDelete(application.id)} // the parent asks for confirmation
+        className="rounded-md px-2 py-1 text-sm font-medium text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
+      >
+        Delete
+      </button>
+    </div>
+  );
+
   return (
-    <ul className="space-y-3">
-      {applications.map((application) => (
-        <li
-          key={application.id}
-          className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h3 className="font-semibold">{application.role}</h3>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                {application.company}
-                {application.location ? ` · ${application.location}` : ""} · {application.source}
-              </p>
+    <>
+      {/* Table: md and up */}
+      <div className="hidden overflow-hidden rounded-xl border border-zinc-200 bg-white md:block dark:border-zinc-800 dark:bg-zinc-900">
+        <table className="w-full text-left text-sm">
+          <caption className="sr-only">Job applications</caption>
+          <thead className="border-b border-zinc-200 bg-zinc-50 text-xs text-zinc-500 uppercase dark:border-zinc-800 dark:bg-zinc-950">
+            <tr>
+              <th scope="col" className="px-4 py-3 font-medium">Job</th>
+              <th scope="col" className="px-4 py-3 font-medium">Status</th>
+              <th scope="col" className="px-4 py-3 font-medium">Applied</th>
+              <th scope="col" className="px-4 py-3 font-medium">Follow up</th>
+              <th scope="col" className="px-4 py-3 font-medium">Found on</th>
+              <th scope="col" className="px-4 py-3 font-medium"><span className="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            {applications.map((application) => (
+              <tr key={application.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+                <td className="px-4 py-3">
+                  {/* The job title opens the details view. */}
+                  <button type="button" onClick={() => onView(application.id)} className="text-left font-medium hover:underline">
+                    {application.role}
+                  </button>
+                  <div className="text-zinc-500">
+                    {application.company}
+                    {application.workplaceType ? ` · ${application.workplaceType}` : ""}
+                  </div>
+                </td>
+                <td className="px-4 py-3"><StatusBadge status={application.status} /></td>
+                <td className="px-4 py-3 whitespace-nowrap text-zinc-600 dark:text-zinc-400">{formatDate(application.appliedOn) || "—"}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-zinc-600 dark:text-zinc-400">{formatDate(application.followUpOn) || "—"}</td>
+                <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">{application.source}</td>
+                <td className="px-4 py-3">{actions(application)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Cards: phones */}
+      <ul className="space-y-3 md:hidden">
+        {applications.map((application) => (
+          <li key={application.id} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-start justify-between gap-3">
+              <button type="button" onClick={() => onView(application.id)} className="min-w-0 text-left">
+                <span className="block font-semibold hover:underline">{application.role}</span>
+                <span className="block text-sm text-zinc-500">
+                  {application.company} · {application.source}
+                </span>
+              </button>
+              <StatusBadge status={application.status} />
             </div>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[application.status]}`}>
-              {application.status}
-            </span>
-          </div>
-
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            {application.appliedOn ? `Applied ${application.appliedOn}` : "Not applied yet"}
-            {application.followUpOn ? ` · Follow up ${application.followUpOn}` : ""}
-          </p>
-          {application.notes ? <p className="mt-2 text-sm whitespace-pre-line">{application.notes}</p> : null}
-
-          <div className="mt-3 flex flex-wrap gap-4 text-sm font-medium">
-            {application.url ? (
-              <a
-                href={application.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-emerald-700 hover:underline dark:text-emerald-400"
-              >
-                Open job post ↗
-              </a>
-            ) : null}
-            <button type="button" onClick={() => onEdit(application.id)} className="hover:underline">
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(application.id)} // the parent asks for confirmation
-              className="text-rose-700 hover:underline dark:text-rose-400"
-            >
-              Delete
-            </button>
-          </div>
-        </li>
-      ))}
-    </ul>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              {application.appliedOn ? `Applied ${formatDate(application.appliedOn)}` : "Not applied yet"}
+              {application.followUpOn ? (
+                <span className="whitespace-nowrap"> · Follow up {formatDate(application.followUpOn)}</span>
+              ) : null}
+            </p>
+            {application.nextAction ? <p className="mt-1 text-sm">Next: {application.nextAction}</p> : null}
+            <div className="mt-2">{actions(application)}</div>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
